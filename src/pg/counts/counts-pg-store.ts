@@ -7,7 +7,8 @@ import {
   DbInscriptionType,
   DbLocationPointer,
 } from '../types';
-import { DbInscriptionCountCriteria, DbInscriptionIndexResultCountType } from './types';
+import { DbInscriptionIndexResultCountType } from './types';
+import { AdminRpcInscriptionCountCriteria } from '../../admin-rpc/init';
 
 /**
  * This class affects all the different tables that track inscription counts according to different
@@ -165,10 +166,10 @@ export class CountsPgStore extends BasePgStoreModule {
    * !!! DANGER !!! This will truncate the selected count table before recalculating.
    * @param criteria - Count criteria
    */
-  async dangerousRecalculateCounts(criteria: DbInscriptionCountCriteria): Promise<void> {
+  async dangerousRecalculateCounts(criteria: AdminRpcInscriptionCountCriteria): Promise<void> {
     await this.sqlWriteTransaction(async sql => {
       switch (criteria) {
-        case DbInscriptionCountCriteria.mimeType:
+        case AdminRpcInscriptionCountCriteria.mimeType:
           await sql`TRUNCATE counts_by_mime_type RESTART IDENTITY`;
           await sql`
             INSERT INTO counts_by_mime_type (
@@ -176,7 +177,7 @@ export class CountsPgStore extends BasePgStoreModule {
             )
           `;
           break;
-        case DbInscriptionCountCriteria.address:
+        case AdminRpcInscriptionCountCriteria.address:
           await sql`TRUNCATE counts_by_address RESTART IDENTITY`;
           // This depends on the `current_locations` table being correct.
           await sql`
@@ -185,7 +186,7 @@ export class CountsPgStore extends BasePgStoreModule {
             )
           `;
           break;
-        case DbInscriptionCountCriteria.genesisAddress:
+        case AdminRpcInscriptionCountCriteria.genesisAddress:
           await sql`TRUNCATE counts_by_genesis_address RESTART IDENTITY`;
           // This depends on the `genesis_locations` table being correct.
           await sql`
@@ -194,7 +195,7 @@ export class CountsPgStore extends BasePgStoreModule {
             )
           `;
           break;
-        case DbInscriptionCountCriteria.satRarity:
+        case AdminRpcInscriptionCountCriteria.satRarity:
           await sql`TRUNCATE counts_by_genesis_address RESTART IDENTITY`;
           await sql`
             INSERT INTO counts_by_sat_rarity (
@@ -202,7 +203,7 @@ export class CountsPgStore extends BasePgStoreModule {
             )
           `;
           break;
-        case DbInscriptionCountCriteria.type:
+        case AdminRpcInscriptionCountCriteria.type:
           await sql`TRUNCATE counts_by_type RESTART IDENTITY`;
           await sql`
             INSERT INTO counts_by_type (

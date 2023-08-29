@@ -37,6 +37,7 @@ import {
   INSCRIPTIONS_COLUMNS,
   LOCATIONS_COLUMNS,
 } from './types';
+import { AdminRpcInscriptionRepositionCriteria } from '../admin-rpc/init';
 
 export const MIGRATIONS_DIR = path.join(__dirname, '../../migrations');
 
@@ -821,8 +822,38 @@ export class PgStore extends BasePgStore {
     });
   }
 
-  async dangerousRecalculateInscriptionPositions(): Promise<void> {
-    //
+  /**
+   * Recalculates genesis or current pointers for inscriptions.
+   * !!! DANGER !!! This will truncate the selected pointers table before recalculating.
+   * @param criteria - Reposition criteria
+   */
+  async dangerousRecalculateInscriptionPositions(
+    criteria: AdminRpcInscriptionRepositionCriteria
+  ): Promise<void> {
+    await this.sqlWriteTransaction(async sql => {
+      switch (criteria) {
+        case AdminRpcInscriptionRepositionCriteria.genesis:
+          await sql`TRUNCATE genesis_locations RESTART IDENTITY`;
+          await sql`
+            INSERT INTO genesis_locations (
+              SELECT DISTINCT ON(inscription_id) inscription_id, id AS location_id, block_height, tx_index, address
+              FROM locations
+              ORDER BY inscription_id, block_height ASC, tx_index ASC
+            )
+          `;
+          break;
+        case AdminRpcInscriptionRepositionCriteria.current:
+          await sql`TRUNCATE current_locations RESTART IDENTITY`;
+          await sql`
+            INSERT INTO current_locations (
+              SELECT DISTINCT ON(inscription_id) inscription_id, id AS location_id, block_height, tx_index, address
+              FROM locations
+              ORDER BY inscription_id, block_height DESC, tx_index DESC
+            )
+          `;
+          break;
+      }
+    });
   }
 
   private async backfillOrphanLocations(): Promise<void> {

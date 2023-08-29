@@ -4,7 +4,19 @@ import { PgStore } from '../pg/pg-store';
 import { Server } from 'http';
 import { Type } from '@sinclair/typebox';
 import { PINO_LOGGER_CONFIG, logger } from '@hirosystems/api-toolkit';
-import { DbInscriptionCountCriteria } from '../pg/counts/types';
+
+export enum AdminRpcInscriptionRepositionCriteria {
+  genesis = 'genesis',
+  current = 'current',
+}
+
+export enum AdminRpcInscriptionCountCriteria {
+  mimeType = 'mime_type',
+  address = 'address',
+  genesisAddress = 'genesis_address',
+  satRarity = 'sat_rarity',
+  type = 'type',
+}
 
 export const AdminApi: FastifyPluginCallback<Record<never, never>, Server, TypeBoxTypeProvider> = (
   fastify,
@@ -44,11 +56,23 @@ export const AdminApi: FastifyPluginCallback<Record<never, never>, Server, TypeB
     {
       schema: {
         description: 'Recalculate inscription genesis or current positions',
-        querystring: Type.Object({}),
+        querystring: Type.Object({
+          criteria: Type.Enum(AdminRpcInscriptionRepositionCriteria),
+        }),
       },
     },
     async (request, reply) => {
-      //
+      const criteria = request.query.criteria;
+      logger.info(`AdminRPC recalculating inscription positions (${criteria})`);
+      fastify.db
+        .dangerousRecalculateInscriptionPositions(criteria)
+        .then(() =>
+          logger.info(`AdminRPC finished recalculating inscription positions (${criteria})`)
+        )
+        .catch(error =>
+          logger.error(error, `AdminRPC failed to recalculate inscription positions (${criteria})`)
+        );
+      await reply.code(200).send();
     }
   );
 
@@ -58,19 +82,17 @@ export const AdminApi: FastifyPluginCallback<Record<never, never>, Server, TypeB
       schema: {
         description: 'Recalculate inscription counts by different criteria',
         querystring: Type.Object({
-          criteria: Type.Enum(DbInscriptionCountCriteria),
+          criteria: Type.Enum(AdminRpcInscriptionCountCriteria),
         }),
       },
     },
     async (request, reply) => {
       const criteria = request.query.criteria;
-      logger.info(`AdminRPC recalculating inscription count for criteria ${criteria}`);
+      logger.info(`AdminRPC recalculating inscription count (${criteria})`);
       fastify.db.counts
-        .dangerousRecalculateCounts(request.query.criteria)
-        .then(() => logger.info(`AdminRPC finished recalculating counts for criteria ${criteria}`))
-        .catch(error =>
-          logger.error(error, `AdminRPC failed to recalculate counts for criteria ${criteria}`)
-        );
+        .dangerousRecalculateCounts(criteria)
+        .then(() => logger.info(`AdminRPC finished recalculating count (${criteria})`))
+        .catch(error => logger.error(error, `AdminRPC failed to recalculate count (${criteria})`));
       await reply.code(200).send();
     }
   );
