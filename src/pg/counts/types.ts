@@ -23,3 +23,11 @@ export enum DbInscriptionIndexResultCountType {
   /** Filtered by custom arguments (tough to count) */
   custom,
 }
+
+export enum DbInscriptionCountCriteria {
+  mimeType = 'mime_type',
+  address = 'address',
+  genesisAddress = 'genesis_address',
+  satRarity = 'sat_rarity',
+  type = 'type',
+}

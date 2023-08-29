@@ -821,6 +821,10 @@ export class PgStore extends BasePgStore {
     });
   }
 
+  async dangerousRecalculateInscriptionPositions(): Promise<void> {
+    //
+  }
+
   private async backfillOrphanLocations(): Promise<void> {
     await this.sqlWriteTransaction(async sql => {
       await sql`

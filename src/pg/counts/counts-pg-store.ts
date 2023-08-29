@@ -7,7 +7,7 @@ import {
   DbInscriptionType,
   DbLocationPointer,
 } from '../types';
-import { DbInscriptionIndexResultCountType } from './types';
+import { DbInscriptionCountCriteria, DbInscriptionIndexResultCountType } from './types';
 
 /**
  * This class affects all the different tables that track inscription counts according to different
@@ -160,6 +160,65 @@ export class CountsPgStore extends BasePgStoreModule {
     });
   }
 
+  /**
+   * Recalculates count tables depending on the selected criteria.
+   * !!! DANGER !!! This will truncate the selected count table before recalculating.
+   * @param criteria - Count criteria
+   */
+  async dangerousRecalculateCounts(criteria: DbInscriptionCountCriteria): Promise<void> {
+    await this.sqlWriteTransaction(async sql => {
+      switch (criteria) {
+        case DbInscriptionCountCriteria.mimeType:
+          await sql`TRUNCATE counts_by_mime_type RESTART IDENTITY`;
+          await sql`
+            INSERT INTO counts_by_mime_type (
+              SELECT mime_type, COUNT(*) AS count FROM inscriptions GROUP BY mime_type
+            )
+          `;
+          break;
+        case DbInscriptionCountCriteria.address:
+          await sql`TRUNCATE counts_by_address RESTART IDENTITY`;
+          // This depends on the `current_locations` table being correct.
+          await sql`
+            INSERT INTO counts_by_address (
+              SELECT address, COUNT(*) AS count FROM current_locations GROUP BY address
+            )
+          `;
+          break;
+        case DbInscriptionCountCriteria.genesisAddress:
+          await sql`TRUNCATE counts_by_genesis_address RESTART IDENTITY`;
+          // This depends on the `genesis_locations` table being correct.
+          await sql`
+            INSERT INTO counts_by_genesis_address (
+              SELECT address, COUNT(*) AS count FROM genesis_locations GROUP BY address
+            )
+          `;
+          break;
+        case DbInscriptionCountCriteria.satRarity:
+          await sql`TRUNCATE counts_by_genesis_address RESTART IDENTITY`;
+          await sql`
+            INSERT INTO counts_by_sat_rarity (
+              SELECT sat_rarity, COUNT(*) AS count FROM inscriptions GROUP BY sat_rarity
+            )
+          `;
+          break;
+        case DbInscriptionCountCriteria.type:
+          await sql`TRUNCATE counts_by_type RESTART IDENTITY`;
+          await sql`
+            INSERT INTO counts_by_type (
+              SELECT 'blessed' AS type, COUNT(*) AS count FROM inscriptions WHERE number >= 0
+            )
+          `;
+          await sql`
+            INSERT INTO counts_by_type (
+              SELECT 'cursed' AS type, COUNT(*) AS count FROM inscriptions WHERE number < 0
+            )
+          `;
+          break;
+      }
+    });
+  }
+
   private async getBlockCount(from?: number, to?: number): Promise<number> {
     if (from === undefined && to === undefined) return 0;
     const result = await this.sql<{ count: number }[]>`
@@ -182,7 +241,7 @@ export class CountsPgStore extends BasePgStoreModule {
     return result[0].count;
   }
 
-  private async getInscriptionCount(type?: DbInscriptionType): Promise<number> {
+  async getInscriptionCount(type?: DbInscriptionType): Promise<number> {
     const types =
       type !== undefined ? [type] : [DbInscriptionType.blessed, DbInscriptionType.cursed];
     const result = await this.sql<{ count: number }[]>`
@@ -193,7 +252,7 @@ export class CountsPgStore extends BasePgStoreModule {
     return result[0].count;
   }
 
-  private async getMimeTypeCount(mimeType?: string[]): Promise<number> {
+  async getMimeTypeCount(mimeType?: string[]): Promise<number> {
     if (!mimeType) return 0;
     const result = await this.sql<{ count: number }[]>`
       SELECT COALESCE(SUM(count), 0) AS count
@@ -203,7 +262,7 @@ export class CountsPgStore extends BasePgStoreModule {
     return result[0].count;
   }
 
-  private async getSatRarityCount(satRarity?: SatoshiRarity[]): Promise<number> {
+  async getSatRarityCount(satRarity?: SatoshiRarity[]): Promise<number> {
     if (!satRarity) return 0;
     const result = await this.sql<{ count: number }[]>`
       SELECT COALESCE(SUM(count), 0) AS count
@@ -213,7 +272,7 @@ export class CountsPgStore extends BasePgStoreModule {
     return result[0].count;
   }
 
-  private async getAddressCount(address?: string[]): Promise<number> {
+  async getAddressCount(address?: string[]): Promise<number> {
     if (!address) return 0;
     const result = await this.sql<{ count: number }[]>`
       SELECT COALESCE(SUM(count), 0) AS count
@@ -223,7 +282,7 @@ export class CountsPgStore extends BasePgStoreModule {
     return result[0].count;
   }
 
-  private async getGenesisAddressCount(genesisAddress?: string[]): Promise<number> {
+  async getGenesisAddressCount(genesisAddress?: string[]): Promise<number> {
     if (!genesisAddress) return 0;
     const result = await this.sql<{ count: number }[]>`
       SELECT COALESCE(SUM(count), 0) AS count

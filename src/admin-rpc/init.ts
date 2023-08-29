@@ -4,6 +4,7 @@ import { PgStore } from '../pg/pg-store';
 import { Server } from 'http';
 import { Type } from '@sinclair/typebox';
 import { PINO_LOGGER_CONFIG, logger } from '@hirosystems/api-toolkit';
+import { DbInscriptionCountCriteria } from '../pg/counts/types';
 
 export const AdminApi: FastifyPluginCallback<Record<never, never>, Server, TypeBoxTypeProvider> = (
   fastify,
@@ -34,6 +35,42 @@ export const AdminApi: FastifyPluginCallback<Record<never, never>, Server, TypeB
         .scanBlocks(startBlock, endBlock)
         .then(() => logger.info(`AdminRPC finished scanning for BRC-20 operations`))
         .catch(error => logger.error(error, `AdminRPC failed to scan for BRC-20`));
+      await reply.code(200).send();
+    }
+  );
+
+  fastify.post(
+    '/inscriptions/reposition',
+    {
+      schema: {
+        description: 'Recalculate inscription genesis or current positions',
+        querystring: Type.Object({}),
+      },
+    },
+    async (request, reply) => {
+      //
+    }
+  );
+
+  fastify.post(
+    '/inscriptions/recount',
+    {
+      schema: {
+        description: 'Recalculate inscription counts by different criteria',
+        querystring: Type.Object({
+          criteria: Type.Enum(DbInscriptionCountCriteria),
+        }),
+      },
+    },
+    async (request, reply) => {
+      const criteria = request.query.criteria;
+      logger.info(`AdminRPC recalculating inscription count for criteria ${criteria}`);
+      fastify.db.counts
+        .dangerousRecalculateCounts(request.query.criteria)
+        .then(() => logger.info(`AdminRPC finished recalculating counts for criteria ${criteria}`))
+        .catch(error =>
+          logger.error(error, `AdminRPC failed to recalculate counts for criteria ${criteria}`)
+        );
       await reply.code(200).send();
     }
   );
