@@ -193,7 +193,7 @@ export const OffsetParam = Type.Integer({
 
 export const LimitParam = Type.Integer({
   minimum: 1,
-  maximum: 60,
+  maximum: 500,
   title: 'Limit',
   description: 'Results per page',
 });
@@ -299,6 +299,7 @@ export const InscriptionResponse = Type.Object(
     sat_rarity: Type.String({ examples: ['common'] }),
     sat_coinbase_height: Type.Integer({ examples: [430521] }),
     mime_type: Type.String({ examples: ['text/plain'] }),
+    content: Type.String({ examples: ['0x11111'] }),
     content_type: Type.String({ examples: ['text/plain;charset=utf-8'] }),
     content_length: Type.Integer({ examples: [59] }),
     timestamp: Type.Integer({ examples: [1677733170000] }),

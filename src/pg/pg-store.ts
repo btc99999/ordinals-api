@@ -422,6 +422,7 @@ export class PgStore extends BasePgStore {
           i.genesis_id,
           i.number,
           i.mime_type,
+          i.content,
           i.content_type,
           i.content_length,
           i.fee AS genesis_fee,

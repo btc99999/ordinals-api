@@ -49,6 +49,7 @@ export function parseDbInscriptions(
     sat_rarity: i.sat_rarity,
     sat_coinbase_height: parseInt(i.sat_coinbase_height),
     mime_type: i.mime_type,
+    content: i.content,
     content_type: i.content_type,
     content_length: parseInt(i.content_length),
     timestamp: i.timestamp.valueOf(),

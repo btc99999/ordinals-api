@@ -55,6 +55,7 @@ Build the app (NodeJS v18+ is required)
 ```
 npm install
 npm run build
+npm run generate:git-info
 ```
 
 Start the service
@@ -129,3 +130,96 @@ Join our community and stay connected with the latest updates and discussions:
   mailing list.
 
 - Follow [Hiro on Twitter.](https://twitter.com/hirosystems)
+
+# FAQ
+
+### 操作postgres数据库
+```docker exec -it postgres-postgres-1 psql -U postgres```
+
+### 报错 ```type "brc20_operation" already exists```
+```DROP TYPE IF EXISTS brc20_operation;```
+
+### hook event回调报错
+```
+修改配置文件.env
+EXTERNAL_HOSTNAME='127.0.0.1:3099'
+CHAINHOOK_NODE_AUTH_TOKEN='Bearer cn389ncoiwuencr'
+PGHOST=127.0.0.1
+PGUSER=postgres
+PGPASSWORD=postgres
+PGDATABASE=postgres
+```
+
+### 手动注册precaution
+```
+{
+  "uuid": "aaaa75ef-b1ed-49c7-8ab8-a0633a57a135",
+  "name": "inscription_feed",
+  "version": 1,
+  "chain": "bitcoin",
+  "networks": {
+      "mainnet": {
+          "start_block": 808888,
+          "if_this": {
+              "scope": "ordinals_protocol",
+              "operation": "inscription_feed"
+          },
+          "then_that": {
+            "http_post": {
+              "url": "http://localhost:20456/v1/observers/aaaa75ef-b1ed-49c7-8ab8-a0633a57a135",
+              "authorization_header": "Bearer cn389ncoiwuencr"
+            }
+          }
+      }
+  }
+}
+```
+
+```
+curl --location 'http://localhost:20456//v1/observers' \
+--header 'Content-Type: application/json' \
+--data '{
+    "uuid": "aaaa75ef-b1ed-49c7-8ab8-a0633a57a135",
+    "name": "inscription_feed",
+    "version": 1,
+    "chain": "bitcoin",
+    "networks": {
+        "mainnet": {
+            "start_block": 808888,
+            "if_this": {
+                "scope": "ordinals_protocol",
+                "operation": "inscription_feed"
+            },
+            "then_that": {
+                "http_post": {
+                    "url": "http://localhost:20456/v1/observers/aaaa75ef-b1ed-49c7-8ab8-a0633a57a135",
+                    "authorization_header": "Bearer cn389ncoiwuencr"
+                }
+            }
+        }
+    }
+}'
+```
+
+```
+cd /mnt/ordinals-api && pm2 start npm -- run start --name ordinals-api
+```
+
+curl -L 'http://localhost:3000/ordinals/v1/' \
+-H 'Accept: application/json'
+
+curl -L 'http://localhost:3000/ordinals/v1/inscriptions' \
+-H 'Accept: application/json'
+
+curl -L 'http://localhost:3000/ordinals/v1/stats/inscriptions' \
+-H 'Accept: application/json'
+
+curl -L 'http://localhost:3000/ordinals/v1/inscriptions/transfers?block=807010' \
+-H 'Accept: application/json'
+
+
+curl -L 'http://localhost:3000/ordinals/v1/inscriptions?limit=80' -H 'Accept: application/json'
+
+
+curl -L 'http://localhost:3000/ordinals/v1/brc-20/balances/bc1qywxh8twe5nw6p5n3yyd79w2dnfrxnukpxntehd?limit=50' \
+-H 'Accept: application/json'

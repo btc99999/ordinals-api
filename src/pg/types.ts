@@ -26,6 +26,7 @@ export type DbFullyLocatedInscriptionResult = {
   sat_rarity: string;
   sat_coinbase_height: string;
   mime_type: string;
+  content: string;
   content_type: string;
   content_length: string;
   timestamp: Date;
